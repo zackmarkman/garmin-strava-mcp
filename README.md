@@ -54,7 +54,7 @@ fly auth login
 ## 2. Clone and install
 
 ```bash
-git clone <this-repo-url> garmin-strava-mcp
+git clone https://github.com/zackmarkman/garmin-strava-mcp.git
 cd garmin-strava-mcp
 uv sync
 ```
