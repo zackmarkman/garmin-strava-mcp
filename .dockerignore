@@ -1,0 +1,16 @@
+.venv
+__pycache__
+*.pyc
+.env
+.env.local
+.git
+.gitignore
+data/
+*.db
+*.db-journal
+docs/
+README.md
+CLAUDE.md
+.DS_Store
+.vscode/
+.idea/

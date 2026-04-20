@@ -1,0 +1,32 @@
+[project]
+name = "garmin-strava-mcp"
+version = "0.1.0"
+description = "Self-hosted MCP server bridging Garmin Connect and Strava to Claude"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=0.4.0",
+    "httpx>=0.27.0",
+    "cryptography>=42.0.0",
+    "python-dotenv>=1.0.0",
+    "garth>=0.4.46",
+    "garminconnect>=0.2.20",
+    "stravalib>=1.7",
+    "uvicorn>=0.30.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6.0",
+]
+# Browser-based Garmin auth bootstrap — only needed locally, one-time.
+# Install with: uv sync --group browser-auth
+browser-auth = [
+    "playwright>=1.47.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
