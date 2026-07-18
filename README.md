@@ -308,8 +308,10 @@ read `ok`. Full details in [DEPLOY.md](DEPLOY.md).
 training readiness, recovery time, stress, recent activities, activity
 details, data freshness.
 
-**Strava:** recent activities, activity details, streams, athlete stats,
-weekly totals, starred segments.
+**Strava:** athlete stats, weekly totals, starred segments. Deliberately
+thin — the [official Strava MCP](https://developers.strava.com) covers
+per-activity detail, streams, zones, and gear better than a self-hosted
+bridge can, so connect both and let this server focus on Garmin.
 
 Every tool accepts `refresh: bool = False` to bypass the local cache. TTLs
 live in [src/cache.py](src/cache.py).

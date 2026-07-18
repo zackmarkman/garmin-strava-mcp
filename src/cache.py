@@ -19,7 +19,6 @@ _lock = threading.Lock()
 TTL: dict[str, int] = {
     "activity_list": 4 * 3600,
     "activity_detail": 7 * 24 * 3600,
-    "activity_stream": 7 * 24 * 3600,
     "sleep": 6 * 3600,
     "wellness": 1 * 3600,       # body battery, stress, HRV
     "training": 6 * 3600,       # VO2 max, training load/status
