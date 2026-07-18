@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -112,7 +113,16 @@ def main() -> None:
     )
 
     token_blob = client.dumps()
-    storage.save_tokens(TOKENS_KEY, {"session": token_blob, "full_name": full_name})
+    storage.save_tokens(
+        TOKENS_KEY,
+        {
+            "session": token_blob,
+            "full_name": full_name,
+            # DI refresh tokens hard-expire ~90 days out; get_server_status
+            # uses this to warn before the session dies.
+            "authorized_at": date.today().isoformat(),
+        },
+    )
     print(f"Saved Garmin tokens for {full_name}.")
 
 

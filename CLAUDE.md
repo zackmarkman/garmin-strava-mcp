@@ -34,6 +34,8 @@ uv run python -m src.server              # run locally on :8000
 
 ## Garmin auth caveat
 
-Per plan: `garth` was deprecated 2026-03-28. We try `garth` first in
-`setup_garmin_auth.py`; if it fails, the script falls back to the browser-based
-token bootstrap inspired by `garmin-givemydata`.
+`garth` is deprecated (2026-03-28) and no longer a dependency. Auth is a
+manual SSO ticket exchange using `garminconnect`'s native DI client — run
+`scripts/setup_garmin_auth.py` and follow the interactive prompts. Sessions
+hard-expire ~90 days after authorization regardless of use; the bootstrap
+stamps `authorized_at` and `get_server_status` warns from day 75.

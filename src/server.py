@@ -31,7 +31,10 @@ def build_mcp() -> FastMCP:
 
     @mcp.tool
     def get_server_status() -> dict:
-        """Report whether Garmin and Strava connections are alive, plus cache stats."""
+        """Report whether Garmin and Strava connections are alive, plus cache stats and Garmin session age. If `garmin_session.warning` is present, surface it to the user — the session hard-expires ~90 days after authorization."""
+        from datetime import date, timedelta
+
+        from . import storage
         from .garmin.client import latest_activity as garmin_latest
         from .strava.client import latest_activity as strava_latest
 
@@ -44,7 +47,34 @@ def build_mcp() -> FastMCP:
                 status[name] = "not_implemented"
             except Exception as exc:  # noqa: BLE001
                 status[name] = f"error: {exc}"
-        return {"connections": status, "cache": cache.stats()}
+
+        # Garmin DI refresh tokens hard-expire ~90 days after authorization,
+        # regardless of use. Warn from day 75 so re-auth happens before failure.
+        garmin_session: dict = {}
+        try:
+            authorized_at = (storage.load_tokens("garmin") or {}).get("authorized_at")
+            if authorized_at:
+                auth_date = date.fromisoformat(authorized_at)
+                age_days = (date.today() - auth_date).days
+                expected_expiry = (auth_date + timedelta(days=90)).isoformat()
+                garmin_session = {
+                    "authorized_at": authorized_at,
+                    "age_days": age_days,
+                    "expected_expiry": expected_expiry,
+                }
+                if age_days >= 75:
+                    garmin_session["warning"] = (
+                        f"Garmin session is {age_days} days old and hard-expires "
+                        f"around {expected_expiry}. Re-run scripts/setup_garmin_auth.py "
+                        "and re-upload the DB (see DEPLOY.md) before then."
+                    )
+        except Exception:  # noqa: BLE001
+            pass
+
+        result = {"connections": status, "cache": cache.stats()}
+        if garmin_session:
+            result["garmin_session"] = garmin_session
+        return result
 
     @mcp.custom_route("/sync", methods=["POST"])
     async def sync_route(_request: Request):
