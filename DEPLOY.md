@@ -62,7 +62,7 @@ curl https://garmin-strava-mcp.fly.dev/health
 
 # Token-gated — should 401 without, 406 (Not Acceptable, correct for MCP) with
 curl -i https://garmin-strava-mcp.fly.dev/mcp
-curl -i "https://garmin-strava-mcp.fly.dev/mcp?token=$(grep ^SERVER_TOKEN .env | cut -d= -f2)"
+curl -i "https://garmin-strava-mcp.fly.dev/mcp?token=$(grep ^SERVER_TOKEN .env | cut -d= -f2-)"
 ```
 
 ## 7. Add to Claude
@@ -75,8 +75,33 @@ curl -i "https://garmin-strava-mcp.fly.dev/mcp?token=$(grep ^SERVER_TOKEN .env |
 
 ## Rotating tokens or reconnecting
 
-If Garmin or Strava tokens expire and the bootstrap scripts need to re-run:
+Garmin sessions expire roughly every **3 months** (hard expiry on the refresh
+token, regardless of use). Symptom: `get_server_status` reports
+`garmin: error: Garmin session expired`. Strava tokens auto-refresh
+indefinitely and rarely need this.
 
-1. Re-run the relevant `scripts/setup_*.py` locally.
-2. Re-upload `data/mcp.db` via the sftp shell in step 5.
-3. `fly machine restart`.
+The steps differ from the first upload in two ways: the machine is usually
+asleep (`min_machines_running = 0`), and sftp `put` refuses to overwrite an
+existing file — so upload to a temp path and swap.
+
+```bash
+# 1. Re-auth locally (interactive ticket paste)
+uv run python scripts/setup_garmin_auth.py
+
+# 2. Wake the machine (it auto-stops when idle)
+fly machine start
+curl -s https://<your-app-name>.fly.dev/health   # wait for {"ok":true}
+
+# 3. Upload to a temp path — `put` errors with "file exists on VM" otherwise
+printf 'put data/mcp.db /data/mcp.db.new\n' | fly ssh sftp shell
+
+# 4. Swap into place and restart
+fly ssh console -C "mv /data/mcp.db.new /data/mcp.db"
+fly machine restart
+
+# 5. Verify
+curl -s https://<your-app-name>.fly.dev/health
+```
+
+Then confirm via the `get_server_status` tool in Claude — both connections
+should read `ok`.

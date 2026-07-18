@@ -240,24 +240,30 @@ curl https://<your-app-name>.fly.dev/health
 ## Maintenance
 
 Tokens expire eventually. Symptoms: Claude returns `Garmin session expired`
-or `401 Strava`. To fix:
+or `401 Strava`. Expected lifetimes:
+
+- **Garmin: ~3 months.** Hard expiry on the refresh token, regardless of use.
+  Plan on re-authing about four times a year — this is normal, not a bug.
+- **Strava: rarely if ever.** Tokens auto-refresh indefinitely.
+
+To fix, re-run the relevant bootstrap locally:
 
 ```bash
-# Strava (every few months if ever):
-uv run python scripts/setup_strava_auth.py
-
-# Garmin (roughly once a year, or after a password change):
-uv run python scripts/setup_garmin_auth.py
+uv run python scripts/setup_garmin_auth.py   # or setup_strava_auth.py
 ```
 
-Then re-upload the DB:
+Then re-upload the DB. Two gotchas: the machine is usually asleep, and sftp
+`put` won't overwrite an existing file — upload to a temp path and swap:
 
 ```bash
-fly ssh sftp shell
-put data/mcp.db /data/mcp.db
-# Ctrl+D
+fly machine start                            # wake it (auto-stops when idle)
+printf 'put data/mcp.db /data/mcp.db.new\n' | fly ssh sftp shell
+fly ssh console -C "mv /data/mcp.db.new /data/mcp.db"
 fly machine restart
 ```
+
+Confirm with the `get_server_status` tool in Claude — both connections should
+read `ok`. Full details in [DEPLOY.md](DEPLOY.md).
 
 ---
 
