@@ -121,7 +121,7 @@ def latest_activity() -> dict[str, Any] | None:
 
 def recent_activities(limit: int = 10) -> list[dict[str, Any]]:
     limit = max(1, min(limit, 50))
-    activities = _call(lambda g, l=limit: g.get_activities(0, l))
+    activities = _call(lambda g, n=limit: g.get_activities(0, n))
     return [_summarize_activity(a) for a in activities]
 
 
@@ -186,9 +186,8 @@ def body_battery(days: int = 1) -> list[dict[str, Any]]:
     days = max(1, min(days, 7))
     end = datetime.now().date()
     start = end - timedelta(days=days - 1)
-    data = _call(
-        lambda g, s=start.isoformat(), e=end.isoformat(): g.get_body_battery(s, e)
-    )
+    start_iso, end_iso = start.isoformat(), end.isoformat()
+    data = _call(lambda g, s=start_iso, e=end_iso: g.get_body_battery(s, e))
     out = []
     for day in data or []:
         out.append(

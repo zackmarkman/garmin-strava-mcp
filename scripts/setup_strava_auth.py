@@ -23,7 +23,7 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src import config, storage  # noqa: E402
-from src.strava.client import TOKENS_KEY, TOKEN_URL  # noqa: E402
+from src.strava.client import TOKEN_URL, TOKENS_KEY  # noqa: E402
 
 REDIRECT_PORT = 8721
 REDIRECT_URI = f"http://localhost:{REDIRECT_PORT}/callback"

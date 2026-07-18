@@ -231,7 +231,8 @@ curl https://<your-app-name>.fly.dev/health
 
 1. Open Claude → **Settings → Connectors → Add custom**.
 2. URL: `https://<your-app-name>.fly.dev/mcp?token=<your SERVER_TOKEN>`
-3. Name: **Garmin + Strava**
+3. Name: **Garmin_MCP** (it's Garmin-first; the few Strava tools are
+   aggregates the official Strava MCP lacks)
 4. Tool permissions → **Always allow**.
 5. Try: *"What did I do on Strava this week?"* or *"How's my recovery?"*
 

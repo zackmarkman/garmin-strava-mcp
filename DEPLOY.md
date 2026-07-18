@@ -69,7 +69,7 @@ curl -i "https://garmin-strava-mcp.fly.dev/mcp?token=$(grep ^SERVER_TOKEN .env |
 
 1. Open Claude (app, web, or desktop) → Settings → Connectors → Add custom.
 2. URL: `https://garmin-strava-mcp.fly.dev/mcp?token=YOUR_SERVER_TOKEN`
-3. Name it "Garmin + Strava".
+3. Name it "Garmin_MCP".
 4. Tool permissions → "Always allow".
 5. Try: *"How's my training load this week?"*
 

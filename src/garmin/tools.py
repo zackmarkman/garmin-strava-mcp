@@ -13,7 +13,12 @@ from . import client
 def register(mcp: FastMCP) -> None:
     @mcp.tool
     def garmin_daily_summary(date: str | None = None, refresh: bool = False) -> dict[str, Any]:
-        """Daily steps, calories, active minutes, floors, distance. `date` is YYYY-MM-DD (today if omitted). Returns null values if the watch hasn't synced for that date yet — use garmin_data_freshness to check."""
+        """Daily steps, calories, active minutes, floors, distance.
+
+        `date` is YYYY-MM-DD (today if omitted). Returns null values if the
+        watch hasn't synced for that date yet — use garmin_data_freshness to
+        check.
+        """
         return cache.get_or_fetch(
             "wellness",
             "garmin_daily",
@@ -24,7 +29,13 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool
     def garmin_sleep(date: str | None = None, refresh: bool = False) -> dict[str, Any]:
-        """Sleep stages, duration, sleep score, plus bed/wake times for the given date (default: today). `start_local`/`end_local` are ISO-8601 wall-clock strings in the user's local timezone (no offset suffix) — display them as-is, do NOT apply timezone conversion. Returns null if the watch hasn't synced — use garmin_data_freshness."""
+        """Sleep stages, duration, sleep score, plus bed/wake times.
+
+        `date` is YYYY-MM-DD (default: today). `start_local`/`end_local` are
+        ISO-8601 wall-clock strings in the user's local timezone (no offset
+        suffix) — display them as-is, do NOT apply timezone conversion.
+        Returns null if the watch hasn't synced — use garmin_data_freshness.
+        """
         return cache.get_or_fetch(
             "sleep",
             "garmin_sleep",
@@ -46,7 +57,11 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool
     def garmin_hrv(date: str | None = None, refresh: bool = False) -> dict[str, Any]:
-        """HRV status, last-night average, weekly average, and baseline range. `date` is YYYY-MM-DD; if omitted, auto-falls back to the most recent populated day (up to 6 days back). All HRV values are in milliseconds."""
+        """HRV status, last-night average, weekly average, and baseline range.
+
+        `date` is YYYY-MM-DD; if omitted, auto-falls back to the most recent
+        populated day (up to 6 days back). All HRV values are in milliseconds.
+        """
         return cache.get_or_fetch(
             "wellness",
             "garmin_hrv",
@@ -57,7 +72,11 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool
     def garmin_vo2_max(date: str | None = None, refresh: bool = False) -> dict[str, Any]:
-        """VO2 max estimate for run and bike plus fitness age. `date` is YYYY-MM-DD; if omitted, auto-falls back to the most recent populated day."""
+        """VO2 max estimate for run and bike plus fitness age.
+
+        `date` is YYYY-MM-DD; if omitted, auto-falls back to the most recent
+        populated day.
+        """
         return cache.get_or_fetch(
             "training",
             "garmin_vo2",
@@ -68,7 +87,11 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool
     def garmin_training_load(date: str | None = None, refresh: bool = False) -> dict[str, Any]:
-        """Training status (productive/recovery/unproductive/etc.) and monthly aerobic/anaerobic load balance. `date` optional; auto-falls back to latest populated day."""
+        """Training status and monthly aerobic/anaerobic load balance.
+
+        Status is productive/recovery/unproductive/etc. `date` optional;
+        auto-falls back to latest populated day.
+        """
         return cache.get_or_fetch(
             "training",
             "garmin_training_load",
@@ -79,7 +102,10 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool
     def garmin_recovery_time(refresh: bool = False) -> dict[str, Any]:
-        """Hours until fully recovered, sourced from Garmin's training-readiness algorithm (authoritative). Also includes the most recent activity for context. Auto-uses the latest populated readiness day."""
+        """Hours until fully recovered, from Garmin's training-readiness
+        algorithm (authoritative). Also includes the most recent activity for
+        context. Auto-uses the latest populated readiness day.
+        """
         return cache.get_or_fetch(
             "training",
             "garmin_recovery",
@@ -127,7 +153,10 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool
     def garmin_training_readiness(date: str | None = None, refresh: bool = False) -> dict[str, Any]:
-        """Training readiness score (0–100), level, factor breakdown, recovery hours. `date` optional; auto-falls back to the latest populated day. Requires compatible Garmin device."""
+        """Training readiness score (0–100), level, factor breakdown, and
+        recovery hours. `date` optional; auto-falls back to the latest
+        populated day. Requires compatible Garmin device.
+        """
         return cache.get_or_fetch(
             "training",
             "garmin_readiness",
@@ -138,7 +167,12 @@ def register(mcp: FastMCP) -> None:
 
     @mcp.tool
     def garmin_data_freshness(refresh: bool = False) -> dict[str, Any]:
-        """Most recent date with populated data for each Garmin metric (sleep, HRV, training readiness, daily summary, activity). Call this first if you suspect the watch hasn't synced today — it tells you what data is actually available before you interpret nulls."""
+        """Most recent date with populated data for each Garmin metric.
+
+        Covers sleep, HRV, training readiness, daily summary, and activity.
+        Call this first if you suspect the watch hasn't synced today — it
+        tells you what data is actually available before you interpret nulls.
+        """
         return cache.get_or_fetch(
             "wellness",
             "garmin_freshness",

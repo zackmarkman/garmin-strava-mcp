@@ -65,7 +65,8 @@ def get_or_fetch(
     with _lock, _connect() as conn:
         conn.execute(
             "INSERT INTO cache(key, value_json, expires_at) VALUES(?, ?, ?) "
-            "ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, expires_at=excluded.expires_at",
+            "ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, "
+            "expires_at=excluded.expires_at",
             (key, json.dumps(value, default=str), expires),
         )
     return value

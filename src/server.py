@@ -15,7 +15,20 @@ from .sync import run_sync
 
 
 def build_mcp() -> FastMCP:
-    mcp = FastMCP(name="garmin-strava")
+    mcp = FastMCP(
+        name="Garmin_MCP",
+        instructions=(
+            "Personal Garmin Connect bridge. Use this server for physiology and "
+            "wellness data: sleep, HRV, training readiness, recovery time, body "
+            "battery, stress, VO2 max, training load, and Garmin activity detail. "
+            "For Strava per-activity detail, streams, HR/power zones, FTP, or "
+            "gear, prefer the official Strava MCP if it is connected — this "
+            "server only keeps the Strava aggregates the official one lacks "
+            "(athlete stats, weekly totals, starred segments). If today's Garmin "
+            "data looks empty, call garmin_data_freshness before interpreting "
+            "nulls: the watch may simply not have synced yet."
+        ),
+    )
 
     garmin_tools.register(mcp)
     strava_tools.register(mcp)
@@ -31,7 +44,10 @@ def build_mcp() -> FastMCP:
 
     @mcp.tool
     def get_server_status() -> dict:
-        """Report whether Garmin and Strava connections are alive, plus cache stats and Garmin session age. If `garmin_session.warning` is present, surface it to the user — the session hard-expires ~90 days after authorization."""
+        """Report whether Garmin and Strava connections are alive, plus cache
+        stats and Garmin session age. If `garmin_session.warning` is present,
+        surface it to the user — the session hard-expires ~90 days after
+        authorization."""
         from datetime import date, timedelta
 
         from . import storage

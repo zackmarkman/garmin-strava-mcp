@@ -48,7 +48,8 @@ def save_tokens(key: str, data: dict[str, Any]) -> None:
     with _lock, _connect() as conn:
         conn.execute(
             "INSERT INTO tokens(key, ciphertext, updated_at) VALUES(?, ?, strftime('%s','now')) "
-            "ON CONFLICT(key) DO UPDATE SET ciphertext=excluded.ciphertext, updated_at=excluded.updated_at",
+            "ON CONFLICT(key) DO UPDATE SET ciphertext=excluded.ciphertext, "
+            "updated_at=excluded.updated_at",
             (key, blob),
         )
 
