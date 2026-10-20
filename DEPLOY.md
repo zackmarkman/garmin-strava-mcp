@@ -37,11 +37,27 @@ fly secrets set \
 Do NOT push `GARMIN_EMAIL` / `GARMIN_PASSWORD` — the deployed server only uses
 the encrypted session tokens in the SQLite DB you're about to upload.
 
-## 4. Deploy
+## 4. Deploy from GitHub
 
-```bash
-fly deploy
-```
+The existing production app deploys from this repository's `main` branch through
+[GitHub Actions](https://github.com/zackmarkman/garmin-strava-mcp/actions/workflows/deploy.yml).
+Every push runs lint and regression tests using Python 3.12 and the frozen dependency
+lockfile. Deployment proceeds only after those checks pass. The deployed image is
+labelled with the GitHub commit SHA. The workflow then checks public health and
+verifies that unauthenticated MCP requests are rejected.
+
+The workflow uses the repository's `FLY_API_TOKEN` Actions secret, scoped to this
+Fly app. Its initial one-year expiry is October 20, 2027; renew the token and update
+the secret before then. No Garmin/Strava tokens or database are stored in GitHub.
+Fly's existing secrets and `/data` volume survive code deployments.
+
+For a new deployment, configure the app and volume above, then create an app-scoped
+Fly deploy token and save it as `FLY_API_TOKEN` in the repository's Actions secrets.
+Keep its value out of terminal output and chat. Push to `main`, or choose **Run
+workflow** on `main` in GitHub Actions. Deployments are serialized.
+
+Manual `fly deploy` remains an emergency fallback; normal production releases come
+from GitHub. Do not upload or replace the database during routine code releases.
 
 ## 5. Upload the local token DB
 
