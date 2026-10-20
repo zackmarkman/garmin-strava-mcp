@@ -7,6 +7,7 @@ sized for Claude's context window per the tier strategy in docs/plan.md.
 
 from __future__ import annotations
 
+import threading
 import time
 from typing import Any
 
@@ -17,6 +18,8 @@ from .. import config, storage
 API = "https://www.strava.com/api/v3"
 TOKEN_URL = "https://www.strava.com/oauth/token"
 TOKENS_KEY = "strava"
+_token_lock = threading.Lock()
+_http = httpx.Client(timeout=30)
 
 
 class StravaAuthError(RuntimeError):
@@ -60,14 +63,15 @@ def _refresh(tokens: dict[str, Any]) -> dict[str, Any]:
 
 
 def _access_token() -> str:
-    tokens = _load_tokens()
-    if tokens.get("expires_at", 0) - time.time() < 60:
-        tokens = _refresh(tokens)
-    return tokens["access_token"]
+    with _token_lock:
+        tokens = _load_tokens()
+        if tokens.get("expires_at", 0) - time.time() < 60:
+            tokens = _refresh(tokens)
+        return tokens["access_token"]
 
 
 def _get(path: str, params: dict[str, Any] | None = None) -> Any:
-    resp = httpx.get(
+    resp = _http.get(
         f"{API}{path}",
         params=params,
         headers={"Authorization": f"Bearer {_access_token()}"},
@@ -75,11 +79,22 @@ def _get(path: str, params: dict[str, Any] | None = None) -> Any:
     )
     if resp.status_code == 401:
         raise StravaAuthError("Strava token rejected — re-run setup_strava_auth.py.")
+    if resp.status_code == 429:
+        raise RuntimeError(
+            "Strava API rate limit reached. Retry later; cached results remain available."
+        )
+    if resp.status_code == 403:
+        raise StravaAuthError(
+            "Strava denied access. Check activity visibility and activity:read_all scope."
+        )
+    if resp.status_code == 404:
+        raise ValueError("Strava activity not found or not accessible to this account.")
     resp.raise_for_status()
     return resp.json()
 
 
 # ----- Shaping helpers ----------------------------------------------------
+
 
 def _summarize_activity(a: dict[str, Any]) -> dict[str, Any]:
     """Tier 1 compact summary — see docs/plan.md."""
@@ -102,6 +117,7 @@ def _summarize_activity(a: dict[str, Any]) -> dict[str, Any]:
 
 # ----- Public API ---------------------------------------------------------
 
+
 def latest_activity() -> dict[str, Any] | None:
     activities = _get("/athlete/activities", {"per_page": 1, "page": 1})
     if not activities:
@@ -123,41 +139,29 @@ def athlete_stats() -> dict[str, Any]:
     }
 
 
-def weekly_totals(weeks: int = 4) -> list[dict[str, Any]]:
-    """Sum of distance/time/elevation per week, most recent first."""
-    weeks = max(1, min(weeks, 12))
-    # Strava has no weekly endpoint — derive from recent activities.
-    per_page = 200
-    activities = _get("/athlete/activities", {"per_page": per_page, "page": 1})
-    buckets: dict[str, dict[str, float]] = {}
-    for a in activities:
-        start = a.get("start_date_local") or ""
-        if not start:
-            continue
-        # ISO week key
-        from datetime import datetime
+def weekly_totals(weeks: int = 4, refresh: bool = False) -> list[dict[str, Any]]:
+    """Current calendar week and preceding weeks, including empty weeks."""
+    from datetime import date, timedelta
 
-        dt = datetime.fromisoformat(start.rstrip("Z"))
-        iso_year, iso_week, _ = dt.isocalendar()
-        key = f"{iso_year}-W{iso_week:02d}"
-        b = buckets.setdefault(
-            key,
-            {"distance_m": 0.0, "moving_time_s": 0.0, "elevation_m": 0.0, "count": 0},
-        )
-        b["distance_m"] += a.get("distance") or 0
-        b["moving_time_s"] += a.get("moving_time") or 0
-        b["elevation_m"] += a.get("total_elevation_gain") or 0
-        b["count"] += 1
-    ordered = sorted(buckets.items(), reverse=True)[:weeks]
+    from .activities import training_summary
+
+    weeks = max(1, min(weeks, 52))
+    end = date.today()
+    start = end - timedelta(days=end.weekday() + 7 * (weeks - 1))
+    data = training_summary(str(start), str(end), "week", refresh=refresh)
+    if not data["complete"]:
+        raise RuntimeError(data["warning"])
     return [
         {
-            "week": week,
-            "distance_km": round(v["distance_m"] / 1000, 2),
-            "moving_time_s": int(v["moving_time_s"]),
-            "elevation_gain_m": round(v["elevation_m"], 1),
-            "activity_count": int(v["count"]),
+            "week": row["period"],
+            "distance_km": round(row["distance_m"] / 1000, 2)
+            if row["distance_m"] is not None
+            else None,
+            "moving_time_s": row["moving_time_s"],
+            "elevation_gain_m": row["elevation_gain_m"],
+            "activity_count": row["activity_count"],
         }
-        for week, v in ordered
+        for row in reversed(data["periods"])
     ]
 
 

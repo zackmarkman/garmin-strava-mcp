@@ -8,6 +8,7 @@ import sqlite3
 import threading
 import time
 from collections.abc import Callable
+from contextlib import closing
 from typing import Any
 
 from . import config
@@ -19,9 +20,10 @@ _lock = threading.Lock()
 TTL: dict[str, int] = {
     "activity_list": 4 * 3600,
     "activity_detail": 7 * 24 * 3600,
+    "strava_streams": 3600,
     "sleep": 6 * 3600,
-    "wellness": 1 * 3600,       # body battery, stress, HRV
-    "training": 6 * 3600,       # VO2 max, training load/status
+    "wellness": 1 * 3600,  # body battery, stress, HRV
+    "training": 6 * 3600,  # VO2 max, training load/status
     "athlete_stats": 4 * 3600,
 }
 
@@ -54,7 +56,7 @@ def get_or_fetch(
     key = _key(bucket, name, args)
     now = int(time.time())
     if not refresh:
-        with _lock, _connect() as conn:
+        with _lock, closing(_connect()) as conn:
             row = conn.execute(
                 "SELECT value_json, expires_at FROM cache WHERE key=?", (key,)
             ).fetchone()
@@ -62,7 +64,8 @@ def get_or_fetch(
             return json.loads(row[0])
     value = fetch()
     expires = now + TTL[bucket]
-    with _lock, _connect() as conn:
+    with _lock, closing(_connect()) as conn:
+        conn.execute("DELETE FROM cache WHERE expires_at <= ?", (now,))
         conn.execute(
             "INSERT INTO cache(key, value_json, expires_at) VALUES(?, ?, ?) "
             "ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json, "
@@ -75,7 +78,7 @@ def get_or_fetch(
 def clear(buckets: tuple[str, ...] = SYNC_CLEAR_BUCKETS) -> int:
     """Drop cached entries in the given buckets. Returns count deleted."""
     total = 0
-    with _lock, _connect() as conn:
+    with _lock, closing(_connect()) as conn:
         for bucket in buckets:
             cur = conn.execute("DELETE FROM cache WHERE key LIKE ?", (f"{bucket}:%",))
             total += cur.rowcount or 0
@@ -83,7 +86,7 @@ def clear(buckets: tuple[str, ...] = SYNC_CLEAR_BUCKETS) -> int:
 
 
 def stats() -> dict[str, int]:
-    with _lock, _connect() as conn:
+    with _lock, closing(_connect()) as conn:
         rows = conn.execute(
             "SELECT substr(key, 1, instr(key, ':') - 1) AS bucket, COUNT(*) "
             "FROM cache GROUP BY bucket"

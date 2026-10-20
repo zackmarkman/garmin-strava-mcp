@@ -231,8 +231,7 @@ curl https://<your-app-name>.fly.dev/health
 
 1. Open Claude → **Settings → Connectors → Add custom**.
 2. URL: `https://<your-app-name>.fly.dev/mcp?token=<your SERVER_TOKEN>`
-3. Name: **Garmin_MCP** (it's Garmin-first; the few Strava tools are
-   aggregates the official Strava MCP lacks)
+3. Name: **Garmin-Strava**
 4. Tool permissions → **Always allow**.
 5. Try: *"What did I do on Strava this week?"* or *"How's my recovery?"*
 
@@ -309,10 +308,27 @@ read `ok`. Full details in [DEPLOY.md](DEPLOY.md).
 training readiness, recovery time, stress, recent activities, activity
 details, data freshness.
 
-**Strava:** athlete stats, weekly totals, starred segments. Deliberately
-thin — the [official Strava MCP](https://developers.strava.com) covers
-per-activity detail, streams, zones, and gear better than a self-hosted
-bridge can, so connect both and let this server focus on Garmin.
+**Strava:** athlete stats, weekly totals, starred segments, activity search,
+activity details, aligned streams, training summaries and activity comparisons.
+
+- Search uses inclusive activity-local dates, defaults to year to date, and supports
+  up to 366 days. Results are paged with `next_offset`; narrow the date range if
+  `complete` is false (retrieval is capped at ten API pages per range).
+- Training summaries share the four-hour summary cache with search. Weekly and
+  monthly periods include empty periods, metric coverage counts, and weighted pace/HR.
+  Filter by sport, distance and average HR for comparable cohorts.
+- Details load on demand and cache for seven days. Choose overview, metric splits,
+  recorded laps or best efforts. Splits and laps retain native distances and units.
+- Streams load only requested channels, cache for one hour, and return at most 1,000
+  original aligned samples per page. Follow `next_offset` with the same filters to
+  retrieve the full activity or a targeted time/distance section. No downsampling.
+- Comparisons accept two to ten IDs and calculate deltas from the first activity.
+  These comparisons do not establish causality or fitness changes.
+- Every tool accepts `refresh=True`. Missing measurements stay null. `sync_latest`
+  clears activity lists and aggregate caches. Expired cache entries are removed on
+  writes. API rate limits return an actionable error without automatic retries.
+
+Run regression checks with `python -m unittest discover -s tests -v`.
 
 Every tool accepts `refresh: bool = False` to bypass the local cache. TTLs
 live in [src/cache.py](src/cache.py).
